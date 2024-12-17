@@ -1,35 +1,54 @@
+#    Supporting material software to the article 
+#    Cross-feeding percolation phase transitions of inter-cellular metabolic networks
+#    
+#    Copyright (C) 2064 L.C.F. Latoski, D.De Martino, A.De Martino
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    a with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 import math
+import sys
 from scipy.spatial import Voronoi,voronoi_plot_2d
 
 def dist(p1,p2):
   distance = math.sqrt( pow(p1[0]-p2[0],2) + pow(p1[1]-p2[1],2) )
   return distance
-A = np.loadtxt("pos_Acells.dat",usecols=(0,1))
+A = np.loadtxt("pos_Acells"+sys.argv[1]+".dat",usecols=(0,1))
 A0 = [i[0] for i in A]
 A1 = [i[1] for i in A]
-Fa = np.loadtxt("pos_Acells.dat",usecols=(2))
-E = np.loadtxt("pos_Ecells.dat",usecols=(0,1))
-Fe = np.loadtxt("pos_Ecells.dat",usecols=(2))
+Fa = np.loadtxt("pos_Acells"+sys.argv[1]+".dat",usecols=(2))
+E = np.loadtxt("pos_Ecells"+sys.argv[1]+".dat",usecols=(0,1))
+Fe = np.loadtxt("pos_Ecells"+sys.argv[1]+".dat",usecols=(2))
 vor = Voronoi(A,incremental=True)
 
 #Adding adjacent matrices
 def copy_system_2d():
-  Aux = [ [A0[i]+500,A1[i]] for i in range(len(A)) ]
+  Aux = [ [A0[i]+1300,A1[i]] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i],A1[i]-500] for i in range(len(A)) ]
+  Aux = [ [A0[i],A1[i]-1300] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i],A1[i]+500] for i in range(len(A)) ]
+  Aux = [ [A0[i],A1[i]+1300] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i]-500,A1[i]] for i in range(len(A)) ]
+  Aux = [ [A0[i]-1300,A1[i]] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i]-500,A1[i]+500] for i in range(len(A)) ]
+  Aux = [ [A0[i]-1300,A1[i]+1300] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i]-500,A1[i]-500] for i in range(len(A)) ]
+  Aux = [ [A0[i]-1300,A1[i]-1300] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i]+500,A1[i]+500] for i in range(len(A)) ]
+  Aux = [ [A0[i]+1300,A1[i]+1300] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
-  Aux = [ [A0[i]+500,A1[i]-500] for i in range(len(A)) ]
+  Aux = [ [A0[i]+1300,A1[i]-1300] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
   return
 
@@ -111,5 +130,5 @@ def neighborhood_periodic():
 print_emiters()
 prob_matrix()
 print_absorbers()
-neighborhood_open()
-# neighborhood_periodic()
+# neighborhood_open()
+neighborhood_periodic()
