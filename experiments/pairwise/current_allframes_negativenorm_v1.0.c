@@ -67,6 +67,7 @@ int main(void)  {
     dist = (double**)malloc(NCELLS*sizeof(double*));
     norm = (double*)malloc(NCELLS*sizeof(double));
 
+    //Read file containing cells position and flux 
     int nemit=0,nabsorb=0;
     for(int i=0; i<NCELLS; i++){
         scanf("%lf %lf %lf",&x[i],&y[i],&flux[i]);
@@ -83,6 +84,7 @@ int main(void)  {
         current[i] = (double*)malloc(NCELLS*sizeof(double));
     }   
 
+    //Calculate distances and normalization factor
     for(int j=0; j<nabsorb; j++){
         int cellj = absorb[j];
         for(int i=0; i<nemit; i++){

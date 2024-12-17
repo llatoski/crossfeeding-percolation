@@ -69,6 +69,7 @@ int main(void)  {
     dist = (double**)malloc(NCELLS*sizeof(double*));
     norm = (int*)malloc(NCELLS*sizeof(int));
 
+    //Read file containing cells position and flux 
     int nemit=0,nabsorb=0;
     for(int i=0; i<NCELLS; i++){
         scanf("%lf %lf %lf",&x[i],&y[i],&flux[i]);
@@ -85,34 +86,30 @@ int main(void)  {
         cont[i] = (int*)malloc(NCELLS*sizeof(int));
     }   
     
+    //Random walk evolution
     double dt=10;
     for(int i=0; i<nemit; i++){
         int celli = emit[i];
-        printf("Running for emitting cell %d\n",i);
-        for(int k=0; k<PRECISION; k++){
+        for(int k=0; k<PRECISION; k++){ //Initialize the walker at the center of a cell and starts the evolution
             double xwalk=x[celli];
             double ywalk=y[celli];
-            // printf("Walker %d leaving from %.2f %.2f\n",k,(double)xwalk/100,(double)ywalk/100);
             int step=0;
             int found=0;
             int alive=1;
-            while(alive==1){
-                double theta = FRANDOM*(2*PI);
+            while(alive==1){ //While the walker is inside the frame and unarbsobed
+                double theta = FRANDOM*(2*PI); //Move the walker
                 xwalk+=STEP*sin(theta);
                 ywalk+=STEP*cos(theta);
-                if(xwalk>ULIM | ywalk>ULIM | xwalk<LLIM | ywalk<LLIM){
+                if(xwalk>ULIM | ywalk>ULIM | xwalk<LLIM | ywalk<LLIM){//If the walker leaves the frame a new emission begins
                     alive=0;
-                    // printf("Saiu do frame na posicao x = %.2f,y=%.2f\n",(double)xwalk,(double)ywalk);
                 }
-                else{
+                else{ //Test for absorbtion
                     for(int j=0; j<nabsorb; j++){
-                        // printf("Testando\n");
                         int cellj = absorb[j];
                         double relativedist = sqrt( (pow((xwalk-x[cellj]),2)) + (pow((ywalk-y[cellj]),2)) );
                         double RAND = (double)FRANDOM;
                         double probability = (double)flux[celli]*dt/normalization;
-                        // if( relativedist < RADIUS)printf("Probabilidade %f compara com o n aleatorio %f\n",probability,RAND);
-                        if( ( relativedist<RADIUS && RAND<probability) ){
+                        if( ( relativedist<RADIUS && RAND<probability) ){ //If inside the range of an absorbing cell, test for for absorbtion
                             alive=0;
                             found=1;
                             cont[celli][cellj]++;
@@ -124,6 +121,7 @@ int main(void)  {
             }
         }
     }
+    //Store the number of walkers absorbed at a given position
     for(int j=0; j<nabsorb; j++){
         int celli=absorb[j];
         for(int k=0; k<nemit; k++){
@@ -131,6 +129,8 @@ int main(void)  {
             norm[celli]+=cont[cellj][celli];
         }
     }
+    
+    //Current calculations
     for(int j=0; j<nemit; j++){
         int celli=emit[j];
         for(int k=0; k<nabsorb; k++){

@@ -77,16 +77,6 @@ int main(void)  {
         }
     }
 
-    // /*Generating hit matrix*/
-    // for(int i=0; i<NEMIT; i++){
-    //         printf("Running for emitting cell %d with Pa = %f\n",i,EmiterPa[i]);
-    //         for(int k=0; k<PRECISION*EmiterPa[i]; k++){
-    //             evolution(i);
-    //         }
-    // }
-
- 
-
     /*Estimating currents*/
     for(int i=0; i<NABSORB; i++){
         int hits=0;
@@ -141,7 +131,6 @@ void initialize(void){
         for(int j=0; j<NABSORB; j++){
             double Pe = AbsorbPe[j];
             AbsorbingProbability[i][j]=Pa*(1-Pe)/(1-(1-Pa)*(1-Pe));
-	    //            printf("%d %d %f %f\n",i,j,Pa*(1-Pe),AbsorbingProbability[i][j]);
         }
     }
     openfiles();
@@ -183,10 +172,8 @@ void change_box(int *r){
     int k=0;
     double probability=0;
     int newbox = *r;
-    //printf("New exchange\n");
     do{
         probability+=AbsorbNeighborhoodProbs[*r][k];
-        //printf("Accumulated probability: %f\n",probability);
         if(rand>probability)newbox=AbsorbNeighborhood[*r][k];
         k++;
     }while(k<AbsorbNNeigh[*r]);
