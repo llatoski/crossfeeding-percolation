@@ -21,7 +21,6 @@
 /***************************************************************
  *                            INCLUDES                      
  **************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -32,25 +31,25 @@
 #include <complex.h>
 #include "mc.h"
 
-#define PRECISION 1e6
-//#define RADIUS 5. 
-
+/***************************************************************
+ *                           DEFINITIONS
+ **************************************************************/
+#define PRECISION 1e6 //Number of iterations (emitting particles) for each emitter
 
 /***************************************************************
  *                            FUNCTIONS                       
  **************************************************************/
-
 void openfiles(void);
 void initialize(void);
 int test_absorption(int,int);
 void matrixview(void);
 void evolution(int);
 void change_box(int*);
+void estimate(void);
 
 /***************************************************************
  *                         GLOBAL VARIABLES                   
  **************************************************************/
-
 FILE *fp2;
 double *EmiterBox, *EmiterPa;
 double *AbsorbPe,*AbsorbFlux,*AbsorbNNeigh,**AbsorbNeighborhood,**AbsorbNeighborhoodProbs;
@@ -58,44 +57,31 @@ double **current,**AbsorbingProbability;
 int **cont;
 unsigned long seed;
 
+/***************************************************************
+ *                           MAIN CODE                   
+ **************************************************************/
 int main(void)  {
 
-    initialize();   
-    
+    initialize();    
     int where[NEMIT];    
     int k=0;
-    for(int i=0; i<NEMIT; i++)if(EmiterPa[i]>0.025){
+    for(int i=0; i<NEMIT; i++)if(EmiterPa[i]>0.025){//Create a list of emitters which flux is above threshold
         where[k]=i;
         k++;
     }
-
-    for(int j=0; j<k; j++){
+    for(int j=0; j<k; j++){//For each emitter with Fe > Threshold 
         int i = where[j];
-        printf("Running for emitting cell %d with Pa = %f\n",i,EmiterPa[i]);
-        for(int k=0; k<PRECISION; k++){
+        for(int k=0; k<PRECISION; k++){//Run the Markov chain a given number of times
             evolution(i);
         }
     }
-
-    /*Estimating currents*/
-    for(int i=0; i<NABSORB; i++){
-        int hits=0;
-        for(int j=0; j<NEMIT; j++){
-            hits+=cont[j][i];
-        }
-        for(int j=0; j<NEMIT; j++){
-            if(hits!=0)current[j][i] = -(double)cont[j][i]*AbsorbFlux[i]/hits;
-        }       
-    }
-
+    estimate();
     matrixview();
-
 }
 
-/*######################################## 
-               Functions
-#########################################*/
-
+/***************************************************************
+ *              Initialization and File reading                   
+ **************************************************************/
 void initialize(void){
     
     #ifdef DEBUG
@@ -136,6 +122,9 @@ void initialize(void){
     openfiles();
 }
 
+/***************************************************************
+ *    Test for absorbption between an emitter and an absorber                  
+ **************************************************************/
 int test_absorption(int emitter, int absorber){
     double rand = FRANDOM;
     double probability = AbsorbingProbability[emitter][absorber];
@@ -147,6 +136,9 @@ int test_absorption(int emitter, int absorber){
     }
 }
 
+/***************************************************************
+ *    Single particle Markov chain inside the Voronoi tiling                   
+ **************************************************************/
 void evolution(int celli){
     int alive=1;
     int currentbox = EmiterBox[celli];
@@ -167,6 +159,9 @@ void evolution(int celli){
     }while(alive==1);
 }
 
+/***************************************************************
+ *           Moving particle to a neighbor vor cell                  
+ **************************************************************/
 void change_box(int *r){
     double rand = FRANDOM;
     int k=0;
@@ -180,16 +175,9 @@ void change_box(int *r){
     *r=newbox;
 }
 
-
-void matrixview(void){
-    for(int i=0; i<NEMIT; i++){
-        for(int j=0; j<NABSORB; j++){
-            fprintf(fp2,"%f ",current[i][j]);
-        }
-        fprintf(fp2,"\n");
-    }
-}
-
+/***************************************************************
+ *                    Open output file                   
+ **************************************************************/
 void openfiles(void) {
     char output_file[300];
     char prefix[250];
@@ -202,3 +190,29 @@ void openfiles(void) {
     return;
 }
 
+/***************************************************************
+ *                  Print exchange flux matrix                   
+ **************************************************************/
+void matrixview(void){
+    for(int i=0; i<NEMIT; i++){
+        for(int j=0; j<NABSORB; j++){
+            fprintf(fp2,"%f ",current[i][j]);
+        }
+        fprintf(fp2,"\n");
+    }
+}
+
+/***************************************************************
+ *                  Current estimation                   
+ **************************************************************/
+void estimate(){
+    for(int i=0; i<NABSORB; i++){
+        int hits=0;
+        for(int j=0; j<NEMIT; j++){
+            hits+=cont[j][i];
+        }
+        for(int j=0; j<NEMIT; j++){
+            if(hits!=0)current[j][i] = -(double)cont[j][i]*AbsorbFlux[i]/hits;
+        }       
+    }
+}

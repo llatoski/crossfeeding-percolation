@@ -1,7 +1,22 @@
-/*************************************************************************
-*             Flux Network Reconstruction using RW method                *
-*                             V1.0 26/06/2021                            *
-*************************************************************************/
+/*
+    Supporting material software to the article 
+    Cross-feeding percolation phase transitions of inter-cellular metabolic networks
+    
+    Copyright (C) 2064 L.C.F. Latoski, D.De Martino, A.De Martino
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    a with this program.  If not, see <http://www.gnu.org/licenses/>.
+                                                                        */
 
 
 /***************************************************************
@@ -33,6 +48,10 @@ double *x,*y,*emit,*absorb,*flux,*fluxerr,**dist,*norm,**properror;
 double **current;
 unsigned long seed;
 
+/***************************************************************
+ *                           MAIN CODE                   
+ **************************************************************/
+
 void main(void)  {
     seed=SEED;
     start_randomic(seed);
@@ -43,10 +62,9 @@ void main(void)  {
         
 }
 
-/*######################################## 
-               Functions
-#########################################*/
-
+/***************************************************************
+ *              Initialization and File reading                   
+ **************************************************************/
 void initialize(void){
     int NCELLS=NEMIT+NABSORB;
     
@@ -68,7 +86,7 @@ void initialize(void){
         for(int j=0; j<NABSORB; j++)scanf("%lf", &current[i][j]);
     }
     int nemit=0,nabsorb=0;
-    for(int i=0; i<NCELLS; i++){
+    for(int i=0; i<NCELLS; i++){//Read auxiliar file
         scanf("%lf %lf",&x[i],&y[i]);
         scanf("%lf",&flux[i]);
         scanf("%lf",&fluxerr[i]);
@@ -83,8 +101,11 @@ void initialize(void){
     }
 }
 
+/***************************************************************************
+    Propagate error using analytical expression (pairwise approximation)
+****************************************************************************/
 void errorpropagation(void){
-    for(int j=0; j<NABSORB; j++){
+    for(int j=0; j<NABSORB; j++){//Calculate distances and normalization factor
         int cellj = absorb[j];
         for(int i=0; i<NEMIT; i++){
             int celli = emit[i];
@@ -92,7 +113,7 @@ void errorpropagation(void){
             norm[cellj]+=flux[celli]/dist[i][j];
         }
     }
-    for(int i=0; i<NEMIT; i++){
+    for(int i=0; i<NEMIT; i++){//Error propagation (Eq.28 of the manuscript)
         int celli = emit[i];
         for(int j=0; j<NABSORB; j++){
             double inc = 0;
@@ -104,38 +125,22 @@ void errorpropagation(void){
             inc += pow(((current[i][j] + flux[cellj])*fluxerr[celli]/dist[i][j]),2);
             inc += pow((flux[celli]*fluxerr[cellj]/dist[i][j]),2);
             properror[i][j]=(double)sqrt(inc)/norm[cellj];
-            // if(current[i][j]>=THRESHOLD)if(celli==CELL1 && cellj==CELL2)printf("%d %d %d %.8f %.8f\n",FRAME,celli,cellj,current[i][j],properror[i][j]);
-            // if(celli==CELL2 && cellj==CELL1)printf("%d %d %d %.8f %.8f\n",FRAME,celli,cellj,current[i][j],properror[i][j]);
-            // if(current[i][j]>=THRESHOLD)printf("%d %d %d %.8f %.8f\n",FRAME,celli,cellj,current[i][j],properror[i][j]);
         }
     }
 }
 
-void printview(void){
-    for(int i=0; i<NEMIT; i++){ 
-        for(int j=0; j<NABSORB; j++){
-            if( current[i][j] > THRESHOLD ){
-                int celli = emit[i];
-                int cellj = absorb[j];
-                //if(sqrt(pow((x[celli]-x[cellj]),2) + pow((y[celli]-y[cellj]),2)) < 200.);
-                printf("set arrow nohead lw %f from %f,%f to %f,%f front\n",current[celli][cellj],x[celli],y[celli],x[cellj],y[cellj]);
-            }
-        }
-    }
-}
-
+/************************************************************************
+          Generate stochastic network based on signal/noise ratio
+*************************************************************************/
 void generate_stochastic_network(void){
     for(int i=0; i<NEMIT; i++){ 
         for(int j=0; j<NABSORB; j++){
             double signalnoise = current[i][j]/properror[i][j];
-            //printf("%f\n",signalnoise);
-            double PROBABILITY = 1 - exp(-signalnoise*DT);
-            double RAND = FRANDOM;
-            //printf("PROB = %lf, RAND = %lf\n",PROBABILITY,RAND);
-            if( RAND <= PROBABILITY && current[i][j] >= THRESHOLD){
+            double PROBABILITY = 1 - exp(-signalnoise*DT); //Estimate probability based on signal noise ratio
+            double RAND = FRANDOM; //Generate random number
+            if( RAND <= PROBABILITY && current[i][j] >= THRESHOLD){ //If random is smaller than probability and current above threshold we say that there is a link between the two cells
                 int celli = emit[i];
                 int cellj = absorb[j];
-                //printf("%d %d %f %f\n",celli,cellj,current[i][j],signalnoise);
                 printf("%d %d\n",celli,cellj);
             }
         }

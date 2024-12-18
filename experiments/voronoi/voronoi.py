@@ -16,13 +16,16 @@
 #    You should have received a copy of the GNU General Public License
 #    a with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+###############################################################################################
+#                                         IMPORTS
+###############################################################################################
 import numpy as np
 import math
 from scipy.spatial import Voronoi,voronoi_plot_2d
 
-def dist(p1,p2):
-  distance = math.sqrt( pow(p1[0]-p2[0],2) + pow(p1[1]-p2[1],2) )
-  return distance
+###############################################
+#                INITIALIZATION                     
+###############################################
 A = np.loadtxt("pos_Acells.dat",usecols=(0,1))
 A0 = [i[0] for i in A]
 A1 = [i[1] for i in A]
@@ -30,8 +33,24 @@ Fa = np.loadtxt("pos_Acells.dat",usecols=(2))
 E = np.loadtxt("pos_Ecells.dat",usecols=(0,1))
 Fe = np.loadtxt("pos_Ecells.dat",usecols=(2))
 vor = Voronoi(A,incremental=True)
+La=len(A)
+Le=len(E)
+box=np.zeros(shape=(Le))
+norm = np.zeros(shape=La)
+pe = np.zeros(shape=La)
+neigh = np.zeros(shape=La)
+dt = 1
 
-#Adding adjacent matrices
+###############################################################################################
+#                             DISTANCE BETWEEN TWO POINTS
+###############################################################################################
+def dist(p1,p2):
+  distance = math.sqrt( pow(p1[0]-p2[0],2) + pow(p1[1]-p2[1],2) )
+  return distance
+
+###############################################################################################
+#                                  ADD ADJACENT MATRICES
+###############################################################################################
 def copy_system_2d():
   Aux = [ [A0[i]+500,A1[i]] for i in range(len(A)) ]
   vor.add_points(Aux,restart=True)
@@ -51,6 +70,11 @@ def copy_system_2d():
   vor.add_points(Aux,restart=True)
   return
 
+#######################################################################
+#                        PERIODIC BOUNDARIES
+#        (Sets the label of each voronoi cell in the adjacent 
+#          matrices as its central counterpart and stores it)  
+#######################################################################
 def periodic_boundaries():
   for j in range(8):
     for i in range(len(A)):
@@ -58,20 +82,10 @@ def periodic_boundaries():
       regions_copy[k] = i
   return
 
-copy_system_2d()
-regions_copy = np.arange(len(vor.points))
-periodic_boundaries()
-
-La=len(A)
-Le=len(E)
-box=np.zeros(shape=(Le))
-G=np.zeros(shape=(La,len(vor.point_region)))
-size = np.zeros(shape=(La,len(vor.point_region)))
-norm = np.zeros(shape=La)
-pe = np.zeros(shape=La)
-neigh = np.zeros(shape=La)
-dt = 1
-
+####################################################################################################
+#                           PRINT EMITERS AND ITS PROPERTIES
+# (Print emiter, which vor cell it belongs to, and the probability of absorption of its particles)
+####################################################################################################
 def print_emiters():
   for n in range(Le):
     closer = -1
@@ -83,6 +97,10 @@ def print_emiters():
     print(n,closer,( 1 - math.exp(-Fe[n]*dt) ) )
   return
 
+###############################################################################################
+#                         CALCULATE TRANSITION PROBABILITIES
+#     (Estimative of the transition probability between two adjacent Voronoi cell)
+###############################################################################################
 def prob_matrix(): 
   for n in range(La):
     for m in range(len(vor.points)):
@@ -96,6 +114,10 @@ def prob_matrix():
           norm[n]+=size[n][m]
           neigh[n]+=1
   return
+###############################################################################################
+#                            PRINT ABSORBERS AND ITS PROPERTIES
+#     (Print absorber, number of adjacent vor cells, escaping probability, absorbing flux)
+###############################################################################################
 
 def print_absorbers():  
   for n in range(La):
@@ -103,6 +125,10 @@ def print_absorbers():
     print(n,int(neigh[n]),pe[n],Fa[n])
   return
 
+###############################################################################################
+#                            BOUNDARY CONDITIONS: OPEN
+#               (Once outside of the frame, the iteration stops)
+###############################################################################################
 def neighborhood_open():
   for n in range(La):
     # a=0
@@ -116,8 +142,9 @@ def neighborhood_open():
     # print(a)
   return
       
-
-
+###############################################################################################
+#                            BOUNDARY CONDITIONS: PERIODIC
+###############################################################################################
 def neighborhood_periodic():
   for n in range(La):
     for m in range(len(vor.points)):
@@ -126,6 +153,15 @@ def neighborhood_periodic():
     
   return
 
+
+###############################################
+#                  MAIN CODE                     
+###############################################
+copy_system_2d()
+regions_copy = np.arange(len(vor.points))
+periodic_boundaries()
+G=np.zeros(shape=(La,len(vor.point_region)))
+size = np.zeros(shape=(La,len(vor.point_region)))
 print_emiters()
 prob_matrix()
 print_absorbers()

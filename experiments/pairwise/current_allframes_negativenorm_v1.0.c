@@ -20,7 +20,6 @@
 /***************************************************************
  *                            INCLUDES                      
  **************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -31,30 +30,46 @@
 #include <complex.h>
 #include "mc.h"
 
-#define NCELLS 158
-#define RADIUS 5 
-#define ULIM 475
-#define LLIM -25
-#define PRECISION 10000
-#define PI 3.14159265359
+/***************************************************************
+ *                            DEFINITIONS                       
+ **************************************************************/
+#define NCELLS 158  //Number of cells
+
 /***************************************************************
  *                            FUNCTIONS                       
  **************************************************************/
+void readfile(void);
+void normalization_calc(void);
+void estimates(void);
 
 /***************************************************************
  *                         GLOBAL VARIABLES                   
  **************************************************************/
-
 double *x,*y,*r,*flux,*fluxerr,normalization=0,**multiplier;
 double **current,*norm,**dist;
-int *absorb,*emit,**cont;
+int *absorb,*emit,**cont, nemit, nabsorb;
 unsigned long seed;
 
+/***************************************************************
+ *                            MAIN CODE                   
+ **************************************************************/
 int main(void)  {
 
     seed = time(0);
     if (seed%2==0) ++seed;
     start_randomic(seed);
+
+    readfile();
+    normalization_calc();
+    estimates();
+
+}
+
+/***************************************************************
+ *        Read file containing cells position and flux                    
+ **************************************************************/
+void readfile(){
+    
     x = (double*)malloc(NCELLS*sizeof(double));
     y = (double*)malloc(NCELLS*sizeof(double));
     r = (double*)malloc(NCELLS*sizeof(double));
@@ -66,9 +81,7 @@ int main(void)  {
     current = (double**)malloc(NCELLS*sizeof(double*));
     dist = (double**)malloc(NCELLS*sizeof(double*));
     norm = (double*)malloc(NCELLS*sizeof(double));
-
-    //Read file containing cells position and flux 
-    int nemit=0,nabsorb=0;
+    
     for(int i=0; i<NCELLS; i++){
         scanf("%lf %lf %lf",&x[i],&y[i],&flux[i]);
         flux[i]=flux[i]/7;
@@ -83,8 +96,12 @@ int main(void)  {
         dist[i] = (double*)malloc(NCELLS*sizeof(double));
         current[i] = (double*)malloc(NCELLS*sizeof(double));
     }   
+}
 
-    //Calculate distances and normalization factor
+/***************************************************************
+ *        Calculate distances and normalization factor
+ **************************************************************/
+void normalization_calc(){
     for(int j=0; j<nabsorb; j++){
         int cellj = absorb[j];
         for(int i=0; i<nemit; i++){
@@ -93,8 +110,12 @@ int main(void)  {
             norm[cellj]+=flux[celli]/dist[celli][cellj];
         }
     }
+}
 
-    //Current calculations
+/***************************************************************
+ *      Current estimates using pairwise approximation
+ **************************************************************/
+void estimates(){
     for(int i=0; i<nemit; i++){
         int celli = emit[i];
         for(int j=0; j<nabsorb; j++){

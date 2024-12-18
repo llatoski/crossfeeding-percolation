@@ -21,7 +21,6 @@
 /***************************************************************
  *                            INCLUDES                      
  **************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -32,31 +31,53 @@
 #include <complex.h>
 #include "mc.h"
 
-#define NCELLS 158
-#define RADIUS 5 
-#define ULIM 475
-#define LLIM -25
-#define PRECISION 10000
-#define PI 3.14159265359
-#define STEP 10
+/***************************************************************
+ *                            DEFINITIONS
+ **************************************************************/
+#define NCELLS 158 //Number of cells in the culture
+#define RADIUS 5 //Cell radius
+#define ULIM 475 //Upper limit of the lattice
+#define LLIM -25 //Lower limit of the lattice
+#define PRECISION 10000 //Number of walkers emitted for each emitting cell
+#define PI 3.14159265359 
+#define STEP 10 //Radius of movement of each random walk
+
 /***************************************************************
  *                            FUNCTIONS                       
  **************************************************************/
+void readfile(void);
+void evolution(void);
+void normalization_calc(void);
+void estimates(void);
 
 /***************************************************************
  *                         GLOBAL VARIABLES                   
  **************************************************************/
-
 double *x,*y,*r,*flux,*fluxerr,normalization=0,**multiplier;
 double **current,**dist;
-int *absorb,*emit,*norm,**cont;
+int *absorb,*emit,*norm,**cont, nemit, nabsorb;
 unsigned long seed;
 
+/***************************************************************
+ *                           MAIN CODE                    
+ **************************************************************/
 int main(void)  {
 
     seed = time(0);
     if (seed%2==0) ++seed;
     start_randomic(seed);
+
+    readfile();
+    evolution();
+    normalization_calc();
+    estimates();
+
+}
+
+/***************************************************************
+ *        Read file containing cells position and flux                    
+ **************************************************************/
+void readfile(){
     x = (double*)malloc(NCELLS*sizeof(double));
     y = (double*)malloc(NCELLS*sizeof(double));
     r = (double*)malloc(NCELLS*sizeof(double));
@@ -69,8 +90,6 @@ int main(void)  {
     dist = (double**)malloc(NCELLS*sizeof(double*));
     norm = (int*)malloc(NCELLS*sizeof(int));
 
-    //Read file containing cells position and flux 
-    int nemit=0,nabsorb=0;
     for(int i=0; i<NCELLS; i++){
         scanf("%lf %lf %lf",&x[i],&y[i],&flux[i]);
         flux[i]=flux[i]/7;
@@ -85,8 +104,13 @@ int main(void)  {
         }
         cont[i] = (int*)malloc(NCELLS*sizeof(int));
     }   
-    
-    //Random walk evolution
+}
+
+/***************************************************************
+ *                  Random walk evolution
+ *    ( PRECISION walkers are released for each emitter )
+ **************************************************************/    
+void evolution(){
     double dt=10;
     for(int i=0; i<nemit; i++){
         int celli = emit[i];
@@ -108,7 +132,7 @@ int main(void)  {
                         int cellj = absorb[j];
                         double relativedist = sqrt( (pow((xwalk-x[cellj]),2)) + (pow((ywalk-y[cellj]),2)) );
                         double RAND = (double)FRANDOM;
-                        double probability = (double)flux[celli]*dt/normalization;
+                        double probability = (double)flux[celli]*dt/normalization; //Absorbption probability is proportional to the emiting flux and normalized
                         if( ( relativedist<RADIUS && RAND<probability) ){ //If inside the range of an absorbing cell, test for for absorbtion
                             alive=0;
                             found=1;
@@ -121,7 +145,13 @@ int main(void)  {
             }
         }
     }
-    //Store the number of walkers absorbed at a given position
+}
+
+/***************************************************************
+ *              Calculate normalization factor       
+ *      (number of walkers absorbed at a given position)
+ **************************************************************/
+void normalization_calc(){
     for(int j=0; j<nabsorb; j++){
         int celli=absorb[j];
         for(int k=0; k<nemit; k++){
@@ -129,8 +159,12 @@ int main(void)  {
             norm[celli]+=cont[cellj][celli];
         }
     }
-    
-    //Current calculations
+}
+
+/***************************************************************
+ *         Current estimates using random walk method
+ **************************************************************/
+void estimates(){
     for(int j=0; j<nemit; j++){
         int celli=emit[j];
         for(int k=0; k<nabsorb; k++){
